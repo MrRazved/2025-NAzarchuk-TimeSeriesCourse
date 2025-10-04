@@ -1,5 +1,5 @@
 import numpy as np
-
+from .utils import z_normalize
 
 def ED_distance(ts1: np.ndarray, ts2: np.ndarray) -> float:
     """
@@ -18,7 +18,7 @@ def ED_distance(ts1: np.ndarray, ts2: np.ndarray) -> float:
     ed_dist = 0
 
     # INSERT YOUR CODE
-    # Вариант 2, тоже правильный
+    
     dist = np.sqrt(np.sum((ts1 - ts2)**2))
     return dist
 
@@ -37,11 +37,13 @@ def norm_ED_distance(ts1: np.ndarray, ts2: np.ndarray) -> float:
     norm_ed_dist: normalized Euclidean distance between ts1 and ts2s
     """
 
-    norm_ed_dist = 0
-
-    # INSERT YOUR CODE
-
-    return norm_ed_dist
+    ts1_norm = z_normalize(ts1)
+    ts2_norm = z_normalize(ts2)
+    
+    
+    dist = ED_distance(ts1_norm, ts2_norm)
+    
+    return dist
 
 
 def DTW_distance(ts1: np.ndarray, ts2: np.ndarray, r: float = 1) -> float:

@@ -3,8 +3,8 @@ import pandas as pd
 import math
 import cv2
 import imutils
-from google.colab.patches import cv2_imshow
-
+#from google.colab.patches import cv2_imshow
+import matplotlib.pyplot as plt
 
 class Image2TimeSeries:
     """
@@ -19,7 +19,7 @@ class Image2TimeSeries:
         self.angle_step: int = angle_step
 
 
-    def _img_preprocess(self, img: np.ndarray) -> np.ndarray:
+    def _img_preprocess(self, img: np.ndarray) -> np.ndarray:  
         """
         Preprocess the raw image: convert to grayscale, inverse, blur slightly, and threshold it
         
@@ -31,11 +31,16 @@ class Image2TimeSeries:
         -------
         prep_img: image after preprocessing
         """
+        
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # INSERT YOUR CODE
+        
+        blurred_img = cv2.GaussianBlur(gray_img, (5, 5), 0)
 
-        return prep_img
+        
+        _, thresh_img = cv2.threshold(blurred_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
+        return thresh_img 
 
     def _get_contour(self, img: np.ndarray) -> np.ndarray:
         """
@@ -146,25 +151,28 @@ class Image2TimeSeries:
 
 
     def _img_show(self, img: np.ndarray, contour: np.ndarray, edge_coordinates: list[np.ndarray], center: tuple[float, float]) -> None:
-        """
-        Draw the raw image with contour, center of the shape on the image and rais from starting center
+   
+    
+        vis_img = img.copy()
 
-        Parameters
-        ----------
-        img: raw image
-        contour: object contour
-        edge_coordinates: contour points
-        center: object center
-        """
+       
+        vis_img_rgb = cv2.cvtColor(vis_img, cv2.COLOR_BGR2RGB)
 
-        cv2.drawContours(img, [contour], -1, (0, 255, 0), 6)
-        cv2.circle(img, center, 7, (255, 255, 255), -1)
-        cv2.putText(img, "center", (center[0]-20, center[1]-20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 6)
-        for i in range(len(edge_coordinates)):
-            cv2.drawContours(img, np.array([[center, edge_coordinates[i]]]), -1, (255, 0, 255), 4)
+        
+        cv2.drawContours(vis_img_rgb, [contour], -1, (0, 255, 0), 2)
+        
+  
+        for point in edge_coordinates:
+            cv2.line(vis_img_rgb, center, tuple(point), (255, 0, 255), 1)
 
-        cv2_imshow(imutils.resize(img, width=200))
+       
+        cv2.circle(vis_img_rgb, center, 5, (255, 20, 147), -1)
+
+    
+        plt.imshow(vis_img_rgb)
+        plt.title("Image with Contours and Rays")
+        plt.axis('off')
+        plt.show()
 
 
     def convert(self, img: np.ndarray, is_visualize: bool = False) -> np.ndarray:
@@ -184,16 +192,20 @@ class Image2TimeSeries:
         ts = []
 
         prep_img = self._img_preprocess(img)
+
+     
         contour = self._get_contour(prep_img)
+      
+        
         center = self._get_center(contour)
         edge_coordinates = self._get_edge_coordinates(contour.squeeze(), center)
 
         if (is_visualize):
+          
             self._img_show(img.copy(), contour, edge_coordinates, center)
 
         for coord in edge_coordinates:
-            #dist = math.sqrt((coord[0] - center[0])**2 + (coord[1] - center[1])**2)
-            dist = math.fabs(coord[0] - center[0]) + math.fabs(coord[1] - center[1])
+            dist = math.sqrt((coord[0] - center[0])**2 + (coord[1] - center[1])**2) 
             ts.append(dist)
 
         return np.array(ts)

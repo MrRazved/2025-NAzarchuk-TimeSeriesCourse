@@ -74,23 +74,30 @@ class PairwiseDistance:
         matrix_values: distance matrix
         """
         
-        matrix_shape = (input_data.shape[0], input_data.shape[0])
+        if self.metric == 'euclidean' and self.is_normalize:
+            dist_func = norm_ED_distance
+            data_to_process = input_data
+        else:
+        
+            dist_func = self._choose_distance()
+        
+        
+        if self.is_normalize:
+            data_to_process = z_normalize(input_data)
+        else:
+            data_to_process = input_data
+
+  
+    
+        matrix_shape = (data_to_process.shape[0], data_to_process.shape[0])
         matrix_values = np.zeros(shape=matrix_shape)
         
-       
-        dist_func = self._choose_distance()
+        k = data_to_process.shape[0]
         
-       
-        k = input_data.shape[0]
-        
-       
         for i in range(k):
             for j in range(i + 1, k):
-               
-                dist = dist_func(input_data[i], input_data[j])
-                
-                
+                dist = dist_func(data_to_process[i], data_to_process[j])
                 matrix_values[i, j] = dist
                 matrix_values[j, i] = dist
-                
+            
         return matrix_values
