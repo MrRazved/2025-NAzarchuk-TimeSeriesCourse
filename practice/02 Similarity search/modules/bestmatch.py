@@ -140,21 +140,33 @@ class NaiveBestMatchFinder(BestMatchFinder):
         """
 
         query = copy.deepcopy(query)
-        if (len(ts_data.shape) != 2): # time series set
+        # Если на вход подан одномерный временной ряд, создаем матрицу подпоследовательностей
+        if (len(ts_data.shape) != 2):
             ts_data = sliding_window(ts_data, len(query))
 
         N, m = ts_data.shape
         excl_zone = self._calculate_excl_zone(m)
 
-        dist_profile = np.ones((N,))*np.inf
-        bsf = np.inf
-
-        bestmatch = {
-            'index' : [],
-            'distance' : []
-        }
+        dist_profile = np.full(N, np.inf)
         
-        # INSERT YOUR CODE
+        # Если нужна нормализация, нормализуем запрос один раз
+        if self.is_normalize:
+            query = z_normalize(query)
+            
+        # --- Основной цикл поиска ---
+        for i in range(N):
+            subsequence = ts_data[i]
+            
+            # Нормализуем подпоследовательность
+            if self.is_normalize:
+                subsequence = z_normalize(subsequence)
+            
+            # Вычисляем DTW расстояние
+            dist = DTW_distance(query, subsequence, r=self.r)
+            dist_profile[i] = dist
+        
+        # После вычисления всех расстояний, находим topK лучших
+        bestmatch = topK_match(dist_profile, excl_zone, self.topK)
 
         return bestmatch
 

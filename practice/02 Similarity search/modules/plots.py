@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 
@@ -51,10 +52,10 @@ def plot_ts_set(ts_set: np.ndarray, title: str = 'Input Time Series Set') -> Non
                       legend=dict(font=dict(size=20, color='black'))
                       )
 
-    fig.show(renderer="colab")
+    fig.show()
 
 
-def mplot2d(x: np.ndarrray, y: np.ndarrray, plot_title: str = None, x_title: str = None, y_title: str = None, trace_titles: np.ndarray = None) -> None:
+def mplot2d(x: np.ndarray, y: np.ndarray, plot_title: str = None, x_title: str = None, y_title: str = None, trace_titles: np.ndarray = None) -> None:
     """
     Multiple 2D Plots on figure for different experiments
 
@@ -100,10 +101,10 @@ def mplot2d(x: np.ndarrray, y: np.ndarrray, plot_title: str = None, x_title: str
                       height=600
                       )
 
-    fig.show(renderer="colab")
+    fig.show()
 
 
-def plot_bestmatch_data(ts: np.ndarrray, query: np.ndarray) -> None:
+def plot_bestmatch_data(ts: np.ndarray, query: np.ndarray) -> None:
     """
     Visualize the input data (time series and query) for the best match task
 
@@ -146,10 +147,10 @@ def plot_bestmatch_data(ts: np.ndarrray, query: np.ndarray) -> None:
                       showlegend=False,
                       title_x=0.5)
 
-    fig.show(renderer="colab")
+    fig.show()
 
 
-def plot_bestmatch_results(ts: np.ndarrray, query: np.ndarrray, bestmatch_results: dict) -> None:
+def plot_bestmatch_results(ts: np.ndarray, query: np.ndarray, bestmatch_results: dict) -> None:
     """
     Visualize the best match results
 
@@ -161,9 +162,49 @@ def plot_bestmatch_results(ts: np.ndarrray, query: np.ndarrray, bestmatch_result
     """
 
     # INSERT YOUR CODE
+    query_len = query.shape[0]
+    ts_len = ts.shape[0]
+
+    # Создаем фигуру с двумя под-графиками
+    fig = make_subplots(rows=1, cols=2, column_widths=[0.2, 0.8], subplot_titles=("Запрос (Query)", "Временной ряд с найденными совпадениями"), horizontal_spacing=0.04)
+
+    # Добавляем график запроса на первый под-график
+    fig.add_trace(go.Scatter(x=np.arange(query_len), y=query, line=dict(color=px.colors.qualitative.Plotly[1], width=3), name='Query'),
+                row=1, col=1)
+    
+    # Добавляем основной временной ряд на второй под-график
+    fig.add_trace(go.Scatter(x=np.arange(ts_len), y=ts, line=dict(color=px.colors.qualitative.Plotly[0], width=2), name='Time Series'),
+                row=1, col=2)
+
+    # Извлекаем индексы найденных совпадений
+    match_indices = bestmatch_results.get('indices', [])
+
+    # Проходим по всем найденным индексам и рисуем их на втором графике
+    for i, idx in enumerate(match_indices):
+        fig.add_trace(go.Scatter(x=np.arange(idx, idx + query_len), 
+                                 y=ts[idx:idx + query_len], 
+                                 line=dict(color=px.colors.qualitative.Plotly[1], width=3), 
+                                 name=f'Match {i+1} at index {idx}'),
+                      row=1, col=2)
+
+    fig.update_annotations(font=dict(size=20, color='black'))
+
+    fig.update_xaxes(showgrid=False, linecolor='#000', ticks="outside", tickfont=dict(size=14, color='black'), mirror=True)
+    fig.update_yaxes(showgrid=False, linecolor='#000', ticks="outside", tickfont=dict(size=14, color='black'), zeroline=False, mirror=True)
+
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",
+                      paper_bgcolor='rgba(0,0,0,0)',
+                      showlegend=True, # Показываем легенду
+                      legend=dict(font=dict(size=16)),
+                      title_text="Результаты поиска по образцу",
+                      title_x=0.5,
+                      title_font=dict(size=24)
+                      )
+
+    fig.show()
 
 
-def pie_chart(labels: np.ndarrray, values: np.ndarrray, plot_title='Pie chart') -> None:
+def pie_chart(labels: np.ndarray, values: np.ndarray, plot_title='Pie chart') -> None:
     """
     Build the pie chart
 
@@ -183,4 +224,4 @@ def pie_chart(labels: np.ndarrray, values: np.ndarrray, plot_title='Pie chart') 
                       height=500
                       )
 
-    fig.show(renderer="colab")
+    fig.show()
