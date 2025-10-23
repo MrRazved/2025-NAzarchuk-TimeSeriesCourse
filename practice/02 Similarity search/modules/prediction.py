@@ -69,21 +69,42 @@ class BestMatchPredictor:
 
 
     def predict(self, ts: np.ndarray, query: np.ndarray) -> np.array:
-        """
-        Predict time series at future horizon
-        
-        Parameters
-        ----------
-        ts: time series
-        query: query, shorter than time series
-
-        Returns
-        -------
-        predict_values: prediction values
-        """
-
+  
         predict_values = np.zeros((self.h,))
+        m = len(query)
 
-        # INSERT YOUR CODE
+        # --- 1. Находим topK похожих подпоследовательностей ---
+        best_matches = {}
+        if self.match_alg == 'UCR-DTW':
+            finder = UCR_DTW(**self.match_alg_params)
+            best_matches = finder.perform(ts, query)
+        elif self.match_alg == 'MASS':
+            dist_profile = mts.mass(ts, query)
+            excl_zone = math.ceil(m * self.match_alg_params['excl_zone_frac'])
+            best_matches = topK_match(dist_profile, excl_zone, topK=self.match_alg_params['topK'])
+        else:
+            raise NotImplementedError
+
+        match_indices = best_matches.get('indices', [])
+        if not match_indices:
+            # Если ничего не найдено, возвращаем нули
+            return predict_values
+
+        # --- 2. Собираем "будущие" значения, следующие за найденными совпадениями ---
+        topK_subs_predict_values = []
+        for idx in match_indices:
+            # Начало "будущего" - это конец найденной подпоследовательности
+            start = idx + m
+            end = start + self.h
+            # Убедимся, что не выходим за пределы временного ряда
+            if end <= len(ts):
+                future_segment = ts[start:end]
+                topK_subs_predict_values.append(future_segment)
         
+        if not topK_subs_predict_values:
+            return predict_values
+
+        # --- 3. Агрегируем (усредняем) "будущие" значения ---
+        predict_values = self._calculate_predict_values(np.array(topK_subs_predict_values))
+
         return predict_values
