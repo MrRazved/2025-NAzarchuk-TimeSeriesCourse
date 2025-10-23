@@ -23,7 +23,14 @@ def compute_mp(ts1: np.ndarray, m: int, exclusion_zone: int = None, ts2: np.ndar
             (matrix profile, matrix profile index, subsequence length, exclusion zone, the first and second time series)
     """
     
-    # INSERT YOUR CODE
+    if ts2 is None:
+        # Это случай, когда мы ищем матричный профиль для одного ряда (self-join).
+        # ignore_trivial=True автоматически исключает тривиальные совпадения (подпоследовательность с самой собой).
+        mp = stumpy.stump(ts1, m=m, ignore_trivial=True)
+    else:
+        # Это случай для двух разных рядов (A-B join), понадобится в Задаче 5.
+        # Тривиальных совпадений здесь быть не может, поэтому ignore_trivial=False.
+        mp = stumpy.stump(T_A=ts1, m=m, T_B=ts2, ignore_trivial=False)
 
     return {'mp': mp[:, 0],
             'mpi': mp[:, 1],
