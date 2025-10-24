@@ -36,29 +36,65 @@ def heads_tails(consumptions: dict, cutoff, house_idx: list) -> tuple:
     return heads, tails
 
 
-def meter_swapping_detection(heads: dict, tails: dict, house_idx: dict, m: int) -> dict:
-    """
-    Find the swapped time series pair
-
-    Parameters
-    ---------
-    heads: heads of time series
-    tails: tails of time series
-    house_idx: indices of houses
-    m: subsequence length
-
-    Returns
-    --------
-    min_score: time series pair with minimum swap-score
-    """
-
-    eps = 0.001
-
-    min_score = {}
-
-    # INSERT YOUR CODE
+def meter_swapping_detection(heads: dict, tails: dict, house_idx: list, m: int) -> dict:
+    eps = 1e-6
     
-    return min_score
+    min_global_score = np.inf
+    best_match = {'score': np.inf, 'i': None, 'j': None, 'mp_j': None}
+
+    # Функция-помощник для безопасного извлечения минимального расстояния
+    def get_min_finite_distance(ts1, ts2, m):
+        if len(ts1) < m or len(ts2) < m:
+            return np.inf
+        
+        # Убедимся, что данные чистые (без NaN) перед передачей в stumpy
+        ts1 = np.nan_to_num(ts1, nan=np.inf)
+        ts2 = np.nan_to_num(ts2, nan=np.inf)
+
+        # Вычисляем профиль
+        mp_dict = compute_mp(ts1=ts1, m=m, ts2=ts2)
+        mp_values = mp_dict['mp'].astype(np.float64)
+        
+        # Находим минимальное значение среди конечных чисел (игнорируем inf и nan)
+        finite_vals = mp_values[np.isfinite(mp_values)]
+        
+        if len(finite_vals) > 0:
+            return np.min(finite_vals), mp_dict
+        else:
+            return np.inf, mp_dict
+
+    # 1. Рассчитываем "базовые" дистанции
+    baseline_distances = {}
+    for i in house_idx:
+        head_i = heads[f'H_{i}'].values.flatten()
+        tail_i = tails[f'T_{i}'].values.flatten()
+        baseline_distances[i], _ = get_min_finite_distance(head_i, tail_i, m)
+
+    # 2. Перебираем все пары и считаем score
+    for i in house_idx:
+        for j in house_idx:
+            head_i = heads[f'H_{i}'].values.flatten()
+            tail_j = tails[f'T_{j}'].values.flatten()
+            
+            min_dist_ij, mp_ij_dict = get_min_finite_distance(head_i, tail_j, m)
+            
+            baseline_dist = baseline_distances.get(i, np.inf)
+            
+            # Пропускаем, если одно из расстояний бесконечно
+            if np.isinf(min_dist_ij) or np.isinf(baseline_dist):
+                continue
+
+            score = min_dist_ij / (baseline_dist + eps)
+
+            if score < min_global_score:
+                min_global_score = score
+                best_match = {
+                    'score': min_global_score, 
+                    'i': i, 
+                    'j': j, 
+                    'mp_j': mp_ij_dict
+                }
+    return best_match
 
 
 def plot_consumptions_ts(consumptions: dict, cutoff, house_idx: list):
